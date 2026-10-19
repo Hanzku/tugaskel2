@@ -1,0 +1,10 @@
+.env
+.env.*
+config/database.php
+*.log
+*.tmp
+*.cache
+node_modules/
+vendor/
+Thumbs.db
+.DS_Store
