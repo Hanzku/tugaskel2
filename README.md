@@ -4,17 +4,14 @@ Aplikasi administrasi akademik berbasis PHP 8+, MySQL/MariaDB, PDO, HTML, CSS, d
 
 ## Menyiapkan MySQL daring
 
-Aplikasi ini disiapkan untuk TiDB Cloud Starter (MySQL-compatible) melalui endpoint publik TLS. Kredensial database tidak disimpan di repository.
+Aplikasi menggunakan MySQL 8 di Aiven dengan TLS dan CA sertifikat khusus layanan. Kredensial database tidak disimpan di repository.
 
-1. Buat instance **TiDB Cloud Starter** pada konsol TiDB Cloud. Pilih instance MySQL-compatible.
-2. Dari **Connect**, pilih **Public** dan metode MySQL/PHP. Catat host, port (biasanya `4000`), nama database, serta username tepat seperti yang diberikan. Username Starter dapat memuat prefix akun; jangan menghapus prefix tersebut.
-3. Buat atau ambil password database dari konsol, lalu masukkan nilai koneksi itu ke konfigurasi lokal. Jangan bagikan kata sandi dan jangan commit `config/database.php`.
-4. Atur IP Access List TiDB agar mengizinkan alamat IP keluar komputer/server yang menjalankan PHP. Gunakan alamat yang sesempit mungkin, bukan membuka akses untuk semua IP.
-5. Jalankan `database/schema_sia_kelompok1.sql` melalui SQL Editor/SQL Shell TiDB. Jika database sudah dipilih atau penyedia tidak mengizinkan `CREATE DATABASE`, lewati `CREATE DATABASE` dan `USE`, lalu jalankan pernyataan `CREATE TABLE`.
-6. Salin `config/database.example.php` menjadi `config/database.php`, lalu isi `host`, `name`, `user`, dan `password`. Port 4000, TLS, serta CA ISRG Root X1 sudah disiapkan sebagai default; gunakan berkas CA hanya untuk validasi sertifikat, jangan menonaktifkan TLS.
-7. Alternatif environment variables: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSL=1`, dan `DB_SSL_CA`. CA publik ISRG Root X1 tersedia di `config/isrgrootx1.pem`.
-
-Detail koneksi dan IP Access List dapat berubah; ikuti connection dialog pada konsol serta dokumentasi resmi [koneksi TiDB Cloud Starter/Essential](https://docs.pingcap.com/tidbcloud/connect-to-tidb-cluster-serverless/) dan [TLS TiDB Cloud](https://docs.pingcap.com/tidbcloud/secure-connections-to-serverless-clusters/).
+1. Buat layanan **MySQL** pada konsol Aiven. Paket gratis berkapasitas terbatas dan dapat dimatikan otomatis saat tidak aktif; tinjau paket dan ketentuan terbaru sebelum memilih layanan berbayar.
+2. Tunggu hingga layanan berstatus **Running**, lalu buka **Connection information**. Salin host, port, user, password, dan CA certificate. Gunakan database `defaultdb` untuk menjalankan SQL awal bila perlu.
+3. Jalankan `database/schema_sia_kelompok1.sql` melalui MySQL CLI/SQL client Aiven. Skrip membuat database terpisah `sia_malaka_kelompok1` dan tabel aplikasinya.
+4. Atur endpoint publik serta IP allowlist sesuai alamat keluar server. Jangan membuka akses ke seluruh internet kecuali memang dibutuhkan dan dipahami risikonya; wajibkan TLS.
+5. Untuk XAMPP, salin `config/database.example.php` menjadi `config/database.php`; isi host, port, nama database `sia_malaka_kelompok1`, user, password, dan lokasi CA yang diunduh sebagai `config/aiven-ca.pem`. Jangan commit `config/database.php`.
+6. Di Vercel, atur `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSL=1`, dan `DB_SSL_CA=config/aiven-ca.pem` untuk environment Production. Tandai password sebagai secret.
 
 ## Menjalankan aplikasi dengan XAMPP
 
@@ -37,4 +34,4 @@ Skema tidak mengisi data contoh otomatis; statistik dashboard dan daftar akan me
 
 ## Pengujian
 
-Jalankan pemeriksaan validasi mandiri dengan `php tests/validation_test.php`. Setelah TiDB Cloud dikonfigurasi, jalankan `php tests/database_smoke.php` untuk menguji create/read/update/delete, pencarian, duplikasi pasangan nilai, rentang nilai, foreign key, dan pencegahan penghapusan master. Tes database membungkus data uji dalam transaksi lalu melakukan rollback. Pemeriksaan sintaks semua berkas dapat dilakukan dengan `php -l` pada tiap berkas PHP. Tes smoke basis data bukan pengganti uji alur melalui browser dan CSRF.
+Jalankan pemeriksaan validasi mandiri dengan `php tests/validation_test.php`. Setelah Aiven dikonfigurasi, jalankan `php tests/database_smoke.php` untuk menguji create/read/update/delete, pencarian, duplikasi pasangan nilai, rentang nilai, foreign key, dan pencegahan penghapusan master. Tes database membungkus data uji dalam transaksi lalu melakukan rollback. Pemeriksaan sintaks semua berkas dapat dilakukan dengan `php -l` pada tiap berkas PHP. Tes smoke basis data bukan pengganti uji alur melalui browser dan CSRF.

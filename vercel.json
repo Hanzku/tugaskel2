@@ -2,7 +2,7 @@
   "functions": {
     "api/index.php": {
       "runtime": "vercel-php@0.9.0",
-      "includeFiles": "config/isrgrootx1.pem"
+      "includeFiles": "config/aiven-ca.pem"
     }
   },
   "routes": [
