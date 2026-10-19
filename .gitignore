@@ -1,6 +1,7 @@
 .env
 .env.*
 config/database.php
+.vercel/
 *.log
 *.tmp
 *.cache
