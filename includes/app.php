@@ -16,66 +16,154 @@ set_exception_handler(static function (Throwable $error): void {
     echo '<!doctype html><html lang="id"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gangguan aplikasi</title><body><h1>Aplikasi belum dapat digunakan</h1><p>Periksa konfigurasi dan koneksi database. Detail kesalahan dicatat di log server.</p><a href="index.php">Kembali ke dashboard</a></body></html>';
 });
 
+function environment_value(string $key): string|false
+{
+    $value = getenv($key);
+    if ($value !== false && $value !== '') {
+        return $value;
+    }
+    return isset($_ENV[$key]) && $_ENV[$key] !== '' ? (string) $_ENV[$key] : false;
+}
+
+function resolve_project_path(string $path): string
+{
+    $trimmed = trim($path);
+    if ($trimmed === '') {
+        return '';
+    }
+    if ($trimmed[0] === '/' || $trimmed[0] === '\\' || preg_match('/^[A-Za-z]:[\\\\\/]/', $trimmed) === 1) {
+        return $trimmed;
+    }
+    return __DIR__ . '/../' . ltrim($trimmed, './\\');
+}
+
+function ca_bundle_candidates(string $configured): array
+{
+    $directory = __DIR__ . '/../config';
+    $candidates = [];
+    if (trim($configured) !== '') {
+        $candidates[] = resolve_project_path($configured);
+    }
+    foreach (scandir($directory) ?: [] as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+        if (preg_match('/\.(?:pem|crt)$/i', $entry) === 1) {
+            $candidates[] = $directory . '/' . $entry;
+        }
+    }
+    return array_values(array_unique($candidates));
+}
+
+function resolve_ca_bundle(string $configured): string
+{
+    foreach (ca_bundle_candidates($configured) as $candidate) {
+        if ($candidate !== '' && is_file($candidate) && is_readable($candidate)) {
+            return $candidate;
+        }
+    }
+    return '';
+}
+
+function log_database_host_resolution(string $host): void
+{
+    if (!function_exists('gethostbynamel')) {
+        error_log(sprintf('[database] resolusi DNS tidak tersedia untuk memeriksa host %s.', $host));
+        return;
+    }
+    $addresses = gethostbynamel($host);
+    if (is_array($addresses) && $addresses !== []) {
+        error_log(sprintf('[database] host %s berhasil diresolusi (%d alamat).', $host, count($addresses)));
+        return;
+    }
+    error_log(sprintf('[database] host %s gagal diresolusi. Periksa status layanan database dan nilai DB_HOST.', $host));
+}
+
+function log_database_failure(string $stage, Throwable $error): void
+{
+    $sqlState = $error instanceof PDOException ? (string) ($error->errorInfo[0] ?? '') : '';
+    $driverCode = $error instanceof PDOException ? (string) ($error->errorInfo[1] ?? '') : '';
+    error_log(sprintf(
+        '[database] tahap=%s jenis=%s sqlstate=%s kode=%s pesan=%s',
+        $stage,
+        (new ReflectionClass($error))->getShortName(),
+        $sqlState === '' ? '-' : $sqlState,
+        $driverCode === '' ? '-' : $driverCode,
+        $error->getMessage()
+    ));
+}
+
 function db(): PDO
 {
     static $connection;
     if ($connection instanceof PDO) {
         return $connection;
     }
-    $path = __DIR__ . '/../config/database.php';
-    if (!is_file($path)) {
-        $path = __DIR__ . '/../config/database.example.php';
-    }
-    $config = require $path;
-    if (!is_array($config)) {
-        throw new RuntimeException('Konfigurasi database tidak valid.');
-    }
-    foreach (['host' => 'DB_HOST', 'port' => 'DB_PORT', 'name' => 'DB_NAME', 'user' => 'DB_USER', 'password' => 'DB_PASSWORD', 'ssl_ca' => 'DB_SSL_CA'] as $key => $variable) {
-        $value = getenv($variable);
-        if ($value !== false && $value !== '') {
-            $config[$key] = $value;
+    $stage = 'konfigurasi';
+    try {
+        $path = __DIR__ . '/../config/database.php';
+        if (!is_file($path)) {
+            $path = __DIR__ . '/../config/database.example.php';
         }
-    }
-    $sslSetting = getenv('DB_SSL');
-    if ($sslSetting !== false && $sslSetting !== '') {
-        if (!in_array($sslSetting, ['0', '1'], true)) {
-            throw new RuntimeException('DB_SSL hanya boleh bernilai 1 atau 0.');
+        $config = require $path;
+        if (!is_array($config)) {
+            throw new RuntimeException('Konfigurasi database tidak valid.');
         }
-        $config['ssl'] = $sslSetting === '1';
-    }
-    foreach (['host', 'port', 'name', 'user'] as $key) {
-        if (!isset($config[$key]) || !is_string($config[$key]) || trim($config[$key]) === '') {
-            throw new RuntimeException('Konfigurasi database belum lengkap. Periksa config/database.php.');
+        foreach (['host' => 'DB_HOST', 'port' => 'DB_PORT', 'name' => 'DB_NAME', 'user' => 'DB_USER', 'password' => 'DB_PASSWORD', 'ssl_ca' => 'DB_SSL_CA'] as $key => $variable) {
+            $value = environment_value($variable);
+            if ($value !== false) {
+                $config[$key] = $value;
+            }
         }
-    }
-    if (!array_key_exists('password', $config) || !is_string($config['password'])) {
-        throw new RuntimeException('Kata sandi database belum diatur. Periksa config/database.php.');
-    }
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ];
-    if (!empty($config['ssl'])) {
-        $caPath = (string) ($config['ssl_ca'] ?? '');
-        if ($caPath === '' || !is_file($caPath) || !is_readable($caPath)) {
-            throw new RuntimeException('Koneksi database online memerlukan berkas CA TLS yang dapat dibaca. Atur DB_SSL_CA atau ssl_ca.');
+        $sslSetting = environment_value('DB_SSL');
+        if ($sslSetting !== false) {
+            if (!in_array($sslSetting, ['0', '1'], true)) {
+                throw new RuntimeException('DB_SSL hanya boleh bernilai 1 atau 0.');
+            }
+            $config['ssl'] = $sslSetting === '1';
         }
-        if (!defined('PDO::MYSQL_ATTR_SSL_CA')) {
-            throw new RuntimeException('Koneksi TLS MySQL memerlukan ekstensi PHP pdo_mysql.');
+        foreach (['host', 'port', 'name', 'user'] as $key) {
+            if (!isset($config[$key]) || !is_string($config[$key]) || trim($config[$key]) === '') {
+                throw new RuntimeException('Konfigurasi database belum lengkap. Periksa config/database.php atau variabel lingkungan DB_*.');
+            }
         }
-        $options[constant('PDO::MYSQL_ATTR_SSL_CA')] = $caPath;
-        if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
-            $options[constant('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')] = true;
+        if (!array_key_exists('password', $config) || !is_string($config['password'])) {
+            throw new RuntimeException('Kata sandi database belum diatur. Periksa config/database.php atau variabel lingkungan DB_PASSWORD.');
         }
+        $stage = 'tls';
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ];
+        if (!empty($config['ssl'])) {
+            if (!defined('PDO::MYSQL_ATTR_SSL_CA')) {
+                throw new RuntimeException('Koneksi TLS MySQL memerlukan ekstensi PHP pdo_mysql.');
+            }
+            $caPath = resolve_ca_bundle((string) ($config['ssl_ca'] ?? ''));
+            if ($caPath !== '') {
+                $config['ssl_ca'] = $caPath;
+                $options[constant('PDO::MYSQL_ATTR_SSL_CA')] = $caPath;
+                if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
+                    $options[constant('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')] = true;
+                }
+            } else {
+                error_log('[database] berkas CA TLS tidak ditemukan di config/; verifikasi memakai CA sistem.');
+            }
+        }
+        $stage = 'koneksi';
+        log_database_host_resolution((string) $config['host']);
+        $connection = new PDO(
+            sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $config['host'], $config['port'], $config['name']),
+            $config['user'],
+            $config['password'],
+            $options
+        );
+        return $connection;
+    } catch (Throwable $error) {
+        log_database_failure($stage, $error);
+        throw $error;
     }
-    $connection = new PDO(
-        sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $config['host'], $config['port'], $config['name']),
-        $config['user'],
-        $config['password'],
-        $options
-    );
-    return $connection;
 }
 
 function e(mixed $value): string
