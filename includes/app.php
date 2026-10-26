@@ -250,10 +250,15 @@ function fetch_record(string $entity, string $id): array|false
 function format_value(string $entity, string $key, mixed $value): string
 {
     if ($entity === 'siswa' && $key === 'foto') {
-        return $value ? '<img class="student-thumb" src="index.php?page=photo&amp;nis=' . rawurlencode((string) $value) . '" alt="Foto siswa">' : '<span class="muted">Tidak ada foto</span>';
+        return $value ? '<img class="student-thumb" src="index.php?page=photo&amp;nis=' . rawurlencode((string) $value) . '" alt="Foto siswa">' : '<span class="badge-subtle badge-muted">Tidak ada foto</span>';
     }
-    if ($key === 'nilai' || $key === 'bobot') {
-        return e(rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.')) . ($key === 'bobot' ? '%' : '');
+    if ($key === 'nilai') {
+        $formatted = rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.');
+        return '<span class="grade-pill">' . e($formatted) . '</span>';
+    }
+    if ($key === 'bobot') {
+        $formatted = rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.');
+        return '<span class="weight-pill">' . e($formatted) . '%</span>';
     }
     return e($value);
 }
