@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="siaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#149FA1"/>
+      <stop offset="100%" stop-color="#0B6F71"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Tile -->
+  <rect width="64" height="64" rx="16" fill="url(#siaGrad)"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" fill="none"/>
+  
+  <!-- Academic Mortarboard Cap -->
+  <path d="M32 10.5L50 18L32 25.5L14 18Z" fill="#ffffff"/>
+  <!-- Cap Tassel -->
+  <path d="M50 18V26.5" stroke="#5EE8EB" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <circle cx="50" cy="27.5" r="1.5" fill="#5EE8EB"/>
+  
+  <!-- Stylized Monogram M & Academic Columns -->
+  <!-- Left Pillar -->
+  <path d="M17 27V49.5" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <!-- Right Pillar -->
+  <path d="M47 27V49.5" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <!-- Center Diagonal Fold -->
+  <path d="M17 29L32 41.5L47 29" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Center Ribbon Accent -->
+  <path d="M32 41.5V49.5" stroke="#5EE8EB" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

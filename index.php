@@ -60,6 +60,9 @@ function page_start(string $title, string $active = 'dashboard'): void
   <meta name="color-scheme" content="light">
   <meta name="description" content="SIA Malaka - Sistem Informasi Akademik SMK Malaka">
   <title><?= e($title) ?> · SIA SMK Malaka</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/favicon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -67,8 +70,10 @@ function page_start(string $title, string $active = 'dashboard'): void
 <div class="app-shell">
   <aside class="sidebar" id="appSidebar" aria-label="Navigasi aplikasi">
     <div class="sidebar-header">
-      <a class="brand" href="index.php">
-        <span class="brand-mark" aria-hidden="true">M</span>
+      <a class="brand" href="index.php" title="Ke Dashboard Operator">
+        <span class="brand-mark">
+          <img class="brand-icon" src="assets/img/logo.svg" alt="Logo SIA Malaka" width="38" height="38">
+        </span>
         <span class="brand-text">
           <strong>SIA MALAKA</strong>
           <small>Sistem Informasi Akademik</small>
@@ -113,7 +118,12 @@ function page_start(string $title, string $active = 'dashboard'): void
         <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="appSidebar">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <div class="mobile-brand"><span class="brand-mark brand-mark-sm">M</span><strong>SIA MALAKA</strong></div>
+        <a class="mobile-brand" href="index.php" title="Ke Dashboard Operator">
+          <span class="brand-mark brand-mark-sm">
+            <img class="brand-icon" src="assets/img/logo.svg" alt="Logo SIA Malaka" width="30" height="30">
+          </span>
+          <strong>SIA MALAKA</strong>
+        </a>
         <nav class="breadcrumb" aria-label="Navigasi rekam jejak">
           <a href="index.php">Beranda</a>
           <?php if ($active !== 'dashboard'): ?>
